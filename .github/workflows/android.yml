@@ -4,37 +4,67 @@ on:
     branches: [ "main", "master" ]
   pull_request:
   workflow_dispatch:
+
 permissions:
   contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Extract full Android source from package
         run: |
-          unzip -o NetAdministrator_Android_GitHub_Ready_v1.0.0_FA.zip
-          # Move contents of NetAdministratorAndroid to root (overwrite existing)
-          cp -a NetAdministratorAndroid/. .
-          rm -rf NetAdministratorAndroid
+          set -e
+          if [ -f NetAdministrator_Android_GitHub_Ready_v1.0.0_FA.zip ]; then
+            echo "Extracting full source package..."
+            unzip -o -q NetAdministrator_Android_GitHub_Ready_v1.0.0_FA.zip
+            if [ -d NetAdministratorAndroid ]; then
+              # Copy everything from the package to repo root (overwrite)
+              cp -a NetAdministratorAndroid/. .
+              rm -rf NetAdministratorAndroid
+              echo "Source package extracted to root."
+            fi
+          else
+            echo "ZIP not found — using already-present source files."
+          fi
+          echo "=== Project root ==="
           ls -la
-      - uses: actions/setup-java@v4
+          echo "=== app/ ==="
+          ls -la app/ || true
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
-      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
-      - name: Install Android SDK packages
-        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Accept Android licenses
+        run: |
+          yes | sdkmanager --licenses || true
+
       - name: Run unit tests
-        run: gradle testDebugUnitTest
+        run: gradle testDebugUnitTest --stacktrace
+
       - name: Build debug APK
-        run: gradle assembleDebug
+        run: gradle assembleDebug --stacktrace
+
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: NetAdministrator-Android-debug
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+          retention-days: 14
