@@ -11,6 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Extract full Android source from package
+        run: |
+          unzip -o NetAdministrator_Android_GitHub_Ready_v1.0.0_FA.zip
+          # Move contents of NetAdministratorAndroid to root (overwrite existing)
+          cp -a NetAdministratorAndroid/. .
+          rm -rf NetAdministratorAndroid
+          ls -la
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
