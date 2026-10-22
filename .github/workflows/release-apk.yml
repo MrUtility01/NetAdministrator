@@ -26,6 +26,35 @@ jobs:
             fi
           fi
 
+      - name: Ensure Compose SelectionContainer import
+        shell: bash
+        run: |
+          set -euo pipefail
+          MAIN_ACTIVITY="$(find app/src/main/java -type f -name 'MainActivity.kt' -print -quit)"
+          if [ -z "$MAIN_ACTIVITY" ]; then
+            echo "MainActivity.kt not found after source extraction."
+            exit 1
+          fi
+          IMPORT_LINE='import androidx.compose.foundation.text.selection.SelectionContainer'
+          if ! grep -Fxq "$IMPORT_LINE" "$MAIN_ACTIVITY"; then
+            awk '
+              BEGIN { inserted = 0 }
+              /^package[[:space:]]/ {
+                print
+                if (!inserted) {
+                  print ""
+                  print "import androidx.compose.foundation.text.selection.SelectionContainer"
+                  inserted = 1
+                }
+                next
+              }
+              { print }
+              END { if (!inserted) exit 2 }
+            ' "$MAIN_ACTIVITY" > "$MAIN_ACTIVITY.tmp"
+            mv "$MAIN_ACTIVITY.tmp" "$MAIN_ACTIVITY"
+          fi
+          grep -nF "$IMPORT_LINE" "$MAIN_ACTIVITY"
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
