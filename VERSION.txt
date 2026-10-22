@@ -1,1 +1,4 @@
-1.0.0
+NetAdministrator Android
+Version: 1.0.0 source package
+Build: GitHub Actions workflow
+Sync protocol: Windows NetAdministrator v0.4.5 / network-learning-sync-v1
